@@ -12,6 +12,7 @@ class Logger {
 		warn: NodeJS.ReadWriteStream;
 		error: NodeJS.ReadWriteStream;
 		logs: NodeJS.ReadWriteStream;
+		livepush: NodeJS.ReadWriteStream;
 	};
 
 	public formatMessage: (name: string, message: string) => string;
@@ -25,6 +26,7 @@ class Logger {
 		logger.addPrefix('warn', chalk.yellow('[Warn]'));
 		logger.addPrefix('error', chalk.red('[Error]'));
 		logger.addPrefix('logs', chalk.green('[Logs]'));
+		logger.addPrefix('live', chalk.yellow('[Live]'));
 
 		this.streams = {
 			build: logger.createLogStream('build'),
@@ -34,6 +36,7 @@ class Logger {
 			warn: logger.createLogStream('warn'),
 			error: logger.createLogStream('error'),
 			logs: logger.createLogStream('logs'),
+			livepush: logger.createLogStream('live'),
 		};
 
 		_.forEach(this.streams, function(stream, key) {
@@ -71,6 +74,10 @@ class Logger {
 
 	logLogs(msg: string) {
 		return this.streams.logs.write(msg + eol);
+	}
+
+	logLivepush(msg: string) {
+		return this.streams.livepush.write(msg + eol);
 	}
 }
 
