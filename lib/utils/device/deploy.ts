@@ -28,6 +28,7 @@ import { displayBuildLog } from './logs';
 
 import { DeviceInfo } from './api';
 import * as LocalPushErrors from './errors';
+import LivepushManager from './live';
 
 // Define the logger here so the debug output
 // can be used everywhere
@@ -38,6 +39,7 @@ export interface DeviceDeployOptions {
 	deviceHost: string;
 	devicePort?: number;
 	registrySecrets: RegistrySecrets;
+	live: boolean;
 }
 
 async function checkSource(source: string): Promise<boolean> {
@@ -60,6 +62,7 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 
 	// First check that we can access the device with a ping
 	try {
+		logger.logDebug('Checking we can access device');
 		await api.ping();
 	} catch (e) {
 		exitWithExpectedError(
@@ -76,8 +79,17 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 
 	try {
 		const version = await api.getVersion();
+		logger.logDebug(`Checking device version: ${version}`);
 		if (!semver.satisfies(version, '>=7.21.4')) {
 			exitWithExpectedError(versionError);
+		}
+		// FIXME: DO NOT MERGE until this version number has been updated
+		// with the version which the following PR ends up in the supervisor
+		// https://github.com/balena-io/balena-supervisor/pull/828
+		if (opts.live && !semver.satisfies(version, '>=1.0.0')) {
+			exitWithExpectedError(
+				new Error('Using livepush requires a supervisor >= v1.0.0'),
+			);
 		}
 	} catch {
 		exitWithExpectedError(versionError);
@@ -98,7 +110,7 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 	// Try to detect the device information
 	const deviceInfo = await api.getDeviceInformation();
 
-	await performBuilds(
+	const buildTasks = await performBuilds(
 		project.composition,
 		tarStream,
 		docker,
@@ -127,6 +139,22 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 	// Now all we need to do is stream back the logs
 	const logStream = await api.getLogStream();
 
+	// Now that we've set the target state, the device will do it's thing
+	// so we can either just display the logs, or start a livepush session
+	// (whilst also display logs)
+	if (opts.live) {
+		const livepush = new LivepushManager(
+			opts.source,
+			project.composition,
+			buildTasks,
+			docker,
+			api,
+			logger,
+		);
+
+		logger.logLivepush('Watching for file changes...');
+		await livepush.init();
+	}
 	await displayDeviceLogs(logStream, logger);
 }
 
@@ -145,7 +173,7 @@ export async function performBuilds(
 	deviceInfo: DeviceInfo,
 	logger: Logger,
 	opts: DeviceDeployOptions,
-): Promise<void> {
+): Promise<BuildTask[]> {
 	const multibuild = await import('resin-multibuild');
 
 	const buildTasks = await multibuild.splitBuildStream(composition, tarStream);
@@ -202,6 +230,8 @@ export async function performBuilds(
 			await image.remove({ force: true });
 		}
 	});
+
+	return buildTasks;
 }
 
 function assignOutputHandlers(buildTasks: BuildTask[], logger: Logger) {
