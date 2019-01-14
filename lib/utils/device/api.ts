@@ -1,4 +1,5 @@
 import * as Bluebird from 'bluebird';
+import * as _ from 'lodash';
 import * as request from 'request';
 import * as Stream from 'stream';
 
@@ -18,6 +19,29 @@ export interface DeviceInfo {
 	arch: string;
 }
 
+export interface Status {
+	appState: 'applied' | 'applying';
+	overallDownloadProgress: null | number;
+	containers: Array<{
+		status: string;
+		serviceName: string;
+		appId: number;
+		imageId: number;
+		serviceId: number;
+		containerId: string;
+		createdAt: string;
+	}>;
+	images: Array<{
+		name: string;
+		appId: number;
+		serviceName: string;
+		imageId: number;
+		dockerImageId: string;
+		status: string;
+		downloadProgress: null | number;
+	}>;
+}
+
 const deviceEndpoints = {
 	setTargetState: 'v2/local/target-state',
 	getTargetState: 'v2/local/target-state',
@@ -25,6 +49,7 @@ const deviceEndpoints = {
 	logs: 'v2/local/logs',
 	ping: 'ping',
 	version: 'v2/version',
+	status: 'v2/state/status',
 };
 
 export class DeviceAPI {
@@ -108,6 +133,23 @@ export class DeviceAPI {
 			}
 
 			return body.version;
+		});
+	}
+
+	public getStatus(): Promise<Status> {
+		const url = this.getUrlForAction('status');
+
+		return DeviceAPI.promisifiedRequest(request.get, {
+			url,
+			json: true,
+		}).then(body => {
+			if (body.status !== 'success') {
+				throw new ApiErrors.DeviceAPIError(
+					'Non-successful response from supervisor status endpoint',
+				);
+			}
+
+			return _.omit(body, 'status') as Status;
 		});
 	}
 
