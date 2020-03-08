@@ -180,6 +180,6 @@
   },
   "optionalDependencies": {
     "removedrive": "^1.0.0",
-    "windosu": "^0.2.0"
+    "windosu": "^0.3.0"
   }
 }
