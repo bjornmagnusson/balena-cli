@@ -90,7 +90,7 @@
     "require-npm4-to-publish": "^1.0.0",
     "resin-lint": "^2.0.1",
     "rewire": "^3.0.2",
-    "ts-node": "^4.0.1",
+    "ts-node": "^8.6.2",
     "typescript": "2.8.1"
   },
   "dependencies": {
