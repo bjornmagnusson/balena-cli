@@ -79,7 +79,7 @@
     "filehound": "^1.16.2",
     "fs-extra": "^5.0.0",
     "gulp": "^3.9.0",
-    "gulp-coffee": "^2.2.0",
+    "gulp-coffee": "^3.0.3",
     "gulp-inline-source": "^2.1.0",
     "gulp-mocha": "^2.0.0",
     "gulp-shell": "^0.5.2",
