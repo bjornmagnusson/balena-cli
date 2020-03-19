@@ -65,7 +65,7 @@
   "devDependencies": {
     "@types/archiver": "2.1.2",
     "@types/bluebird": "3.5.19",
-    "@types/common-tags": "1.4.0",
+    "@types/common-tags": "1.8.0",
     "@types/es6-promise": "0.0.32",
     "@types/fs-extra": "5.0.4",
     "@types/is-root": "2.1.2",
